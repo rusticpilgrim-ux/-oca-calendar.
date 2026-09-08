@@ -20,6 +20,7 @@
   function escapeHtml(s) { return String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function cacheKey(d) { return `oca-ru-${OCA.iso(d)}`; }
   function autoTranslateOn() { return localStorage.getItem('oca-auto-translate') !== '0'; }
+  function translatedPageUrl(url) { return `https://translate.google.com/translate?sl=en&tl=ru&u=${encodeURIComponent(url)}`; }
 
   function renderToday() {
     const events = OCA.eventsFor(now);
@@ -147,10 +148,16 @@
     } catch (err) {
       if (token !== loadToken) return;
       const local = OCA.eventsFor(d).map(e => e.ru).join('. ');
+      const readingRu = translatedPageUrl(OCA.ocaReadingUrl(d));
+      const saintsRu = translatedPageUrl(OCA.ocaSaintsUrl(d));
       readerPanel.innerHTML = `
         <div class="reader-head"><div><div class="reader-kicker">OCA · внутри приложения</div><h2>Русский перевод</h2></div></div>
-        <div class="reader-error">Сейчас не удалось получить страницу OCA. ${local ? `Из локального календаря: <strong>${escapeHtml(local)}</strong>` : 'Попробуй ещё раз при хорошем интернете.'}</div>
-        <button id="retryReader" class="action-link" type="button">Повторить</button>`;
+        <div class="reader-error">Сейчас не удалось автоматически получить страницу OCA. ${local ? `Из локального календаря: <strong>${escapeHtml(local)}</strong>` : 'Попробуй ещё раз при хорошем интернете.'}</div>
+        <div class="actions">
+          <button id="retryReader" class="action-link" type="button">Повторить внутри приложения</button>
+          <a class="action-link secondary" href="${escapeHtml(readingRu)}" target="_blank" rel="noopener">📖 Чтения — перевод на русский ↗</a>
+          <a class="action-link secondary" href="${escapeHtml(saintsRu)}" target="_blank" rel="noopener">☦ Жития святых — перевод на русский ↗</a>
+        </div>`;
       document.getElementById('retryReader').addEventListener('click', () => loadRussianReader(true, true));
     }
   }
@@ -179,6 +186,6 @@
   renderToday(); renderCalendar(); renderDetails();
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw-v4.js').catch(() => {}));
   }
 })();
