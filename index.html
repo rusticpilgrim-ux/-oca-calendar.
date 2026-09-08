@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-title" content="OCA Календарь" />
   <link rel="apple-touch-icon" href="icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=5" />
   <title>OCA Календарь</title>
-  <meta name="oca-version" content="4.0">
+  <meta name="oca-version" content="5.0">
 </head>
 <body>
   <div class="app-shell">
@@ -42,11 +42,12 @@
 
       <section id="dayDetails" class="details-card"></section>
       <section id="ocaReader" class="reader-card" aria-live="polite"></section>
+      <section id="rocReader" class="reader-card roc-card" aria-live="polite"></section>
 
       <section class="source-card">
         <h2>Как работает русский режим</h2>
-        <p>Календарные даты и посты рассчитываются внутри приложения. Для полного списка святых и ссылок на чтения приложение получает публичную страницу выбранного дня OCA и показывает результат здесь на русском.</p>
-        <p class="small">Машинный перевод может быть неточным в именах и церковных терминах. Английский оригинал всегда можно раскрыть рядом. Правила поста могут отличаться по благословению духовника или прихода.</p><p class="small"><strong>Версия 4.0</strong> — исправлено обновление на iPhone: старые кнопки «Чтения OCA / Святые дня» больше не должны оставаться в кэше.</p>
+        <p>Календарные даты и посты рассчитываются внутри приложения. Для выбранного дня приложение показывает данные OCA, а также отдельный русский месяцеслов по «Азбуке веры» — для той же церковной даты по старому стилю.</p>
+        <p class="small">Машинный перевод может быть неточным в именах и церковных терминах. Английский оригинал всегда можно раскрыть рядом. Правила поста могут отличаться по благословению духовника или прихода.</p><p class="small"><strong>Версия 5.0</strong> — добавлен русский месяцеслов по «Азбуке веры». Например, 8 сентября OCA сопоставляется с 21 сентября гражданского календаря РПЦ (8 сентября ст. ст.).</p>
       </section>
     </main>
   </div>
@@ -63,11 +64,11 @@
   </div>
 
   <script>
-  // v4: force iPhone/PWA to drop stale JavaScript from earlier installs.
-  window.OCA_APP_VERSION = '4.0';
+  // v5: force iPhone/PWA to drop stale JavaScript from earlier installs.
+  window.OCA_APP_VERSION = '5.0';
   (function () {
     try {
-      const key = 'oca-cache-reset-v4';
+      const key = 'oca-cache-reset-v5';
       if (localStorage.getItem(key) !== '1') {
         localStorage.setItem(key, '1');
         if ('caches' in window) caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {});
@@ -76,8 +77,8 @@
     } catch (_) {}
   })();
 </script>
-<script src="calendar.js?v=4"></script>
-  <script src="reader.js?v=4"></script>
-  <script src="app.js?v=4"></script>
+<script src="calendar.js?v=5"></script>
+  <script src="reader.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

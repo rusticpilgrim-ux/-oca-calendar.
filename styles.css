@@ -163,3 +163,12 @@ summary { color:var(--accent); font-size:12px; cursor:pointer; }
   .status-pill { background:#273224; color:#bcd5ac; }
   .reader-error { background:#39241f; color:#f0bcb0; }
 }
+
+/* v5: Russian menologion / Azbyka */
+.roc-card { border-color:#dfd5c4; }
+.calendar-match { display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin:8px 0 10px; padding:10px 12px; border-radius:13px; background:#f8f2eb; color:var(--ink); font-size:13px; text-align:center; }
+.calendar-match span { color:var(--accent); font-weight:800; }
+.style-note { color:var(--muted); font-size:12px; line-height:1.45; margin:0 0 8px; }
+.saints-list { margin:4px 0 0; padding-left:21px; display:grid; gap:8px; line-height:1.42; font-size:14px; }
+.saints-list li::marker { color:var(--accent); }
+@media (prefers-color-scheme: dark) { .calendar-match { background:#2b211d; } }

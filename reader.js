@@ -176,5 +176,94 @@
     return localChurchTranslation(text);
   }
 
-  window.OCAReader = { fetchOcaDay, translateCommemorations, translateReadingRef, localChurchTranslation, dayUrl };
+
+
+  // --- Russian Orthodox menologion via Azbyka.ru ---
+  // The selected OCA civil date is treated as the same nominal church month/day.
+  // That nominal Julian date is converted to the Gregorian civil date used by the
+  // Russian Church calendar. This is +13 days today, but the conversion remains
+  // correct across century changes as well.
+  function julianNominalToGregorian(date) {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const a = Math.floor((14 - month) / 12);
+    const y = year + 4800 - a;
+    const m = month + 12 * a - 3;
+    const jdn = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - 32083;
+
+    const b = jdn + 32044;
+    const c = Math.floor((4 * b + 3) / 146097);
+    const d = b - Math.floor(146097 * c / 4);
+    const e = Math.floor((4 * d + 3) / 1461);
+    const f = d - Math.floor(1461 * e / 4);
+    const g = Math.floor((5 * f + 2) / 153);
+    const gd = f - Math.floor((153 * g + 2) / 5) + 1;
+    const gm = g + 3 - 12 * Math.floor(g / 10);
+    const gy = 100 * c + e - 4800 + Math.floor(g / 10);
+    return new Date(gy, gm - 1, gd, 12, 0, 0, 0);
+  }
+
+  function azbykaDayUrl(ocaDate) {
+    const civil = julianNominalToGregorian(ocaDate);
+    return `https://azbyka.ru/days/${civil.getFullYear()}-${pad(civil.getMonth()+1)}-${pad(civil.getDate())}`;
+  }
+
+  function cleanAzbykaLine(s) {
+    return cleanupMarkdown(String(s || ''))
+      .replace(/^[-*•]\s*/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function parseAzbykaMarkdown(text) {
+    const raw = String(text || '').replace(/\r/g, '');
+    const stopMatch = raw.search(/\n##\s+(?:Чтения Священного Писания|Богослужения|Тропари|Притча дня)/i);
+    const top = stopMatch >= 0 ? raw.slice(0, stopMatch) : raw.slice(0, 12000);
+    const lines = top.split('\n');
+    const entries = [];
+    for (const line of lines) {
+      if (!/^\s*[-*•]\s+/.test(line)) continue;
+      const item = cleanAzbykaLine(line);
+      if (!item || /^(Богослужебные чтения дня|Цитата дня из Библии|Библия за год)$/i.test(item)) continue;
+      entries.push(item);
+    }
+    return [...new Set(entries)].slice(0, 80);
+  }
+
+  function parseAzbykaHtml(html) {
+    try {
+      const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+      const h1 = doc.querySelector('h1');
+      if (!h1) return [];
+      const all = [...doc.querySelectorAll('li')].map(li => cleanAzbykaLine(li.textContent)).filter(Boolean);
+      // Keep concise commemoration-like items; navigation links are usually very short or generic.
+      return [...new Set(all.filter(x => x.length > 5 && x.length < 500 && !/^(Главная|Календарь|Библия|Книги|Статьи|Поиск|Пожертвовать|Войти|Регистрация)$/i.test(x)))].slice(0, 80);
+    } catch (_) { return []; }
+  }
+
+  async function fetchAzbykaMenologion(ocaDate) {
+    const targetRu = azbykaDayUrl(ocaDate);
+    const targetOrg = targetRu.replace('azbyka.ru', 'azbyka.org');
+    const attempts = [
+      {name:'Jina/Azbyka.ru', url:`https://r.jina.ai/${targetRu}`, kind:'text', source:targetRu},
+      {name:'Jina/Azbyka.org', url:`https://r.jina.ai/${targetOrg}`, kind:'text', source:targetOrg},
+      {name:'AllOrigins', url:`https://api.allorigins.win/raw?url=${encodeURIComponent(targetRu)}`, kind:'html', source:targetRu},
+      {name:'CodeTabs', url:`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetRu)}`, kind:'html', source:targetRu}
+    ];
+    const errors=[];
+    for (const a of attempts) {
+      try {
+        const r = await fetchWithTimeout(a.url, {headers:{'Accept': a.kind==='text'?'text/plain':'text/html,*/*'}}, 14000);
+        if (!r.ok) throw new Error(String(r.status));
+        const body = await r.text();
+        const entries = a.kind === 'text' ? parseAzbykaMarkdown(body) : parseAzbykaHtml(body);
+        if (entries.length) return { entries, sourceUrl:a.source, via:a.name, civilDate:julianNominalToGregorian(ocaDate) };
+        throw new Error('empty');
+      } catch(e) { errors.push(`${a.name}: ${e && e.message ? e.message : 'ошибка'}`); }
+    }
+    throw new Error(errors.join(' | '));
+  }
+
+  window.OCAReader = { fetchOcaDay, translateCommemorations, translateReadingRef, localChurchTranslation, dayUrl, fetchAzbykaMenologion, julianNominalToGregorian, azbykaDayUrl };
 })();

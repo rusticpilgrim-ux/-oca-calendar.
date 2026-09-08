@@ -9,16 +9,20 @@
   let viewYear = now.getFullYear();
   let viewMonth = now.getMonth();
   let loadToken = 0;
+  let rocLoadToken = 0;
 
   const grid = document.getElementById('calendarGrid');
   const title = document.getElementById('monthTitle');
   const details = document.getElementById('dayDetails');
   const todayCard = document.getElementById('todayCard');
   const readerPanel = document.getElementById('ocaReader');
+  const rocPanel = document.getElementById('rocReader');
+  const fmtShort = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
   function escapeHtml(s) { return String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function cacheKey(d) { return `oca-ru-${OCA.iso(d)}`; }
+  function rocCacheKey(d) { return `roc-menologion-${OCA.iso(d)}`; }
   function autoTranslateOn() { return localStorage.getItem('oca-auto-translate') !== '0'; }
   function translatedPageUrl(url) { return `https://translate.google.com/translate?sl=en&tl=ru&u=${encodeURIComponent(url)}`; }
 
@@ -69,6 +73,7 @@
 
   function renderDetails() {
     loadToken++;
+    rocLoadToken++;
     const events = OCA.eventsFor(selected);
     const fasting = OCA.fastingInfo(selected);
     const hasPascha = events.some(e => e.kind === 'pascha');
@@ -83,13 +88,14 @@
       ${eventHtml}
       ${fasting ? `<div class="fast-note">☦ ${escapeHtml(fasting)}</div>` : ''}
       <div class="actions">
-        <button id="ruReaderBtn" class="action-link" type="button">🇷🇺 Святые и чтения по-русски</button>
+        <button id="ruReaderBtn" class="action-link" type="button">🇷🇺 Святые, чтения и месяцеслов</button>
         <a class="action-link secondary" href="${OCA.ocaReadingUrl(selected)}" target="_blank" rel="noopener">OCA оригинал ↗</a>
       </div>`;
 
-    document.getElementById('ruReaderBtn').addEventListener('click', () => loadRussianReader(true));
+    document.getElementById('ruReaderBtn').addEventListener('click', () => { loadRussianReader(true); loadRocReader(true); });
     renderReaderPlaceholder();
-    if (autoTranslateOn()) setTimeout(() => loadRussianReader(false), 180);
+    renderRocPlaceholder();
+    if (autoTranslateOn()) { setTimeout(() => loadRussianReader(false), 180); setTimeout(() => loadRocReader(false), 260); }
   }
 
   function renderReaderPlaceholder() {
@@ -162,6 +168,75 @@
     }
   }
 
+
+  function renderRocPlaceholder() {
+    const civil = OCAReader.julianNominalToGregorian(selected);
+    rocPanel.innerHTML = `
+      <div class="reader-head">
+        <div><div class="reader-kicker">Русский месяцеслов · Азбука веры</div><h2>Память святых РПЦ</h2></div>
+        <button class="mini-btn" id="rocLoadBtn" type="button">Загрузить</button>
+      </div>
+      <div class="calendar-match">
+        <strong>${escapeHtml(fmtShort.format(selected))} OCA</strong>
+        <span>→</span>
+        <strong>${escapeHtml(fmtShort.format(civil))} по гражданскому календарю РПЦ</strong>
+      </div>
+      <p class="empty">Для месяцеслова берётся та же номинальная церковная дата по старому стилю. Например, 8 сентября OCA соответствует 21 сентября 2026 года у Русской Церкви (8 сентября ст. ст.).</p>`;
+    document.getElementById('rocLoadBtn').addEventListener('click', () => loadRocReader(true));
+  }
+
+  function renderRocData(data, fromCache) {
+    const civil = data.civilDate ? new Date(data.civilDate) : OCAReader.julianNominalToGregorian(selected);
+    const items = data.entries || [];
+    rocPanel.innerHTML = `
+      <div class="reader-head">
+        <div><div class="reader-kicker">Русский месяцеслов · Азбука веры</div><h2>Память святых РПЦ</h2></div>
+        <span class="status-pill">${fromCache ? 'сохранено' : 'обновлено'}</span>
+      </div>
+      <div class="calendar-match">
+        <strong>${escapeHtml(fmtShort.format(selected))} OCA</strong>
+        <span>→</span>
+        <strong>${escapeHtml(fmtShort.format(civil))} РПЦ</strong>
+      </div>
+      <p class="style-note">Это сопоставление именно <strong>месяцеслова</strong>: та же церковная дата по юлианскому (старому) стилю. Переходящие праздники по Пасхалии считаются отдельно.</p>
+      <div class="reader-section">
+        <h3>☦ Память дня по русскому календарю</h3>
+        ${items.length ? `<ul class="saints-list">${items.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : '<p class="empty">Список не найден.</p>'}
+      </div>
+      <div class="reader-footer">
+        <button id="refreshRoc" class="mini-btn" type="button">Обновить</button>
+        <a href="${escapeHtml(data.sourceUrl || OCAReader.azbykaDayUrl(selected))}" target="_blank" rel="noopener">Азбука веры ↗</a>
+      </div>`;
+    document.getElementById('refreshRoc').addEventListener('click', () => loadRocReader(true, true));
+  }
+
+  async function loadRocReader(userInitiated, force) {
+    const token = ++rocLoadToken;
+    const d = new Date(selected);
+    const key = rocCacheKey(d);
+    if (!force) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) || 'null');
+        if (saved && saved.data && saved.data.entries) { renderRocData(saved.data, true); return; }
+      } catch (_) {}
+    }
+    const civil = OCAReader.julianNominalToGregorian(d);
+    rocPanel.innerHTML = `<div class="reader-loading"><span class="spinner"></span><div><strong>Загружаю русский месяцеслов…</strong><small>${escapeHtml(fmtShort.format(d))} OCA → ${escapeHtml(fmtShort.format(civil))} по календарю РПЦ.</small></div></div>`;
+    try {
+      const data = await OCAReader.fetchAzbykaMenologion(d);
+      if (token !== rocLoadToken) return;
+      try { localStorage.setItem(key, JSON.stringify({ data, savedAt: Date.now() })); } catch (_) {}
+      renderRocData(data, false);
+    } catch (err) {
+      if (token !== rocLoadToken) return;
+      rocPanel.innerHTML = `
+        <div class="reader-head"><div><div class="reader-kicker">Русский месяцеслов · Азбука веры</div><h2>Память святых РПЦ</h2></div></div>
+        <div class="reader-error">Сейчас не удалось автоматически получить список с «Азбуки веры». Дата для русского календаря: <strong>${escapeHtml(fmtShort.format(civil))}</strong>.</div>
+        <div class="actions"><button id="retryRoc" class="action-link" type="button">Повторить</button><a class="action-link secondary" href="${escapeHtml(OCAReader.azbykaDayUrl(d))}" target="_blank" rel="noopener">Открыть «Азбуку веры» ↗</a></div>`;
+      document.getElementById('retryRoc').addEventListener('click', () => loadRocReader(true, true));
+    }
+  }
+
   function openSettings() {
     const modal = document.getElementById('settingsModal');
     const check = document.getElementById('autoTranslate');
@@ -180,12 +255,12 @@
   document.getElementById('settingsModal').addEventListener('click', e => { if (e.target.id === 'settingsModal') closeSettings(); });
   document.getElementById('autoTranslate').addEventListener('change', e => {
     localStorage.setItem('oca-auto-translate', e.target.checked ? '1' : '0');
-    if (e.target.checked) loadRussianReader(false);
+    if (e.target.checked) { loadRussianReader(false); loadRocReader(false); }
   });
 
   renderToday(); renderCalendar(); renderDetails();
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('./sw-v4.js').catch(() => {}));
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw-v5.js').catch(() => {}));
   }
 })();
