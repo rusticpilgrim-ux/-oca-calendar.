@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="OCA Календарь" />
-  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
   <title>OCA Календарь</title>
@@ -17,12 +17,12 @@
     <header class="topbar">
       <div class="brand">
         <div class="brand-cross" aria-hidden="true">☦</div>
-        <div>
-          <h1>OCA Календарь</h1>
-          <p>Православная Церковь в Америке</p>
-        </div>
+        <div><h1>OCA Календарь</h1><p>Православная Церковь в Америке</p></div>
       </div>
-      <button id="todayBtn" class="ghost-btn" type="button">Сегодня</button>
+      <div class="top-actions">
+        <button id="settingsBtn" class="icon-btn" type="button" aria-label="Настройки">⚙︎</button>
+        <button id="todayBtn" class="ghost-btn" type="button">Сегодня</button>
+      </div>
     </header>
 
     <main>
@@ -34,29 +34,35 @@
           <button id="monthTitle" class="month-title" type="button" aria-label="Вернуться к текущему месяцу"></button>
           <button id="nextMonth" class="nav-btn" type="button" aria-label="Следующий месяц">›</button>
         </div>
-
-        <div class="weekdays" aria-hidden="true">
-          <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
-        </div>
+        <div class="weekdays" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
         <div id="calendarGrid" class="calendar-grid"></div>
-        <div class="legend">
-          <span><i class="dot feast"></i> праздник</span>
-          <span><i class="dot fast"></i> пост</span>
-          <span><i class="dot pascha"></i> Пасха</span>
-        </div>
+        <div class="legend"><span><i class="dot feast"></i> праздник</span><span><i class="dot fast"></i> пост</span><span><i class="dot pascha"></i> Пасха</span></div>
       </section>
 
       <section id="dayDetails" class="details-card"></section>
+      <section id="ocaReader" class="reader-card" aria-live="polite"></section>
 
       <section class="source-card">
-        <h2>Официальный источник</h2>
-        <p>Даты в приложении рассчитаны по календарю OCA. Для полного списка святых и богослужебных чтений выбранного дня используются официальные страницы Orthodox Church in America.</p>
-        <p class="small">Примечание: правила поста могут отличаться по благословению духовника или прихода. Для спорных случаев сверяйтесь со своим приходом OCA.</p>
+        <h2>Как работает русский режим</h2>
+        <p>Календарные даты и посты рассчитываются внутри приложения. Для полного списка святых и ссылок на чтения приложение получает публичную страницу выбранного дня OCA и показывает результат здесь на русском.</p>
+        <p class="small">Машинный перевод может быть неточным в именах и церковных терминах. Английский оригинал всегда можно раскрыть рядом. Правила поста могут отличаться по благословению духовника или прихода.</p>
       </section>
     </main>
   </div>
 
+  <div id="settingsModal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head"><h2 id="settingsTitle">Настройки</h2><button id="closeSettings" class="icon-btn" type="button" aria-label="Закрыть">✕</button></div>
+      <label class="setting-row">
+        <span><strong>Русский перевод OCA</strong><small>Автоматически показывать святых и чтения при выборе дня.</small></span>
+        <input id="autoTranslate" type="checkbox" />
+      </label>
+      <p class="setting-note">Если перевод временно не загрузился, нажми «Повторить». Основной календарь продолжает работать автономно.</p>
+    </div>
+  </div>
+
   <script src="calendar.js"></script>
+  <script src="reader.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
