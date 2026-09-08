@@ -1,0 +1,121 @@
+:root {
+  --bg: #f4efe8;
+  --card: #fffdf9;
+  --ink: #241714;
+  --muted: #786762;
+  --accent: #6f1d1b;
+  --accent-2: #a34a3f;
+  --gold: #b58b3a;
+  --border: #eadfd5;
+  --fast: #6d5a8b;
+  --pascha: #a66c00;
+  --shadow: 0 8px 28px rgba(74, 42, 31, 0.09);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top right, rgba(181,139,58,.12), transparent 36%),
+    var(--bg);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+button, a { -webkit-tap-highlight-color: transparent; }
+button { font: inherit; }
+
+.app-shell { max-width: 820px; margin: 0 auto; padding: env(safe-area-inset-top) 14px calc(28px + env(safe-area-inset-bottom)); }
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 2px 12px;
+  background: rgba(244,239,232,.88);
+  backdrop-filter: blur(18px);
+}
+.brand { display: flex; gap: 10px; align-items: center; }
+.brand-cross { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: #fff; background: var(--accent); font-size: 26px; box-shadow: var(--shadow); }
+h1 { margin: 0; font-size: 21px; letter-spacing: -.3px; }
+.brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.ghost-btn, .nav-btn, .month-title {
+  border: 0; background: transparent; color: var(--accent); font-weight: 650;
+}
+.ghost-btn { padding: 9px 10px; border-radius: 10px; }
+.ghost-btn:active { background: rgba(111,29,27,.08); }
+
+main { display: grid; gap: 14px; }
+.today-card, .calendar-card, .details-card, .source-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow);
+}
+.today-card { padding: 18px; background: linear-gradient(145deg, #7d2521, #5f1717); color: #fff; }
+.today-kicker { opacity: .82; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+.today-date { font-size: 29px; font-weight: 750; margin: 5px 0 8px; letter-spacing: -.7px; }
+.today-feast { font-family: Georgia, "Times New Roman", serif; font-size: 20px; line-height: 1.25; }
+.today-meta { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 7px; }
+.chip { display: inline-flex; align-items: center; min-height: 28px; padding: 5px 9px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.14); }
+
+.calendar-card { padding: 14px; }
+.calendar-toolbar { display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; margin-bottom: 9px; }
+.nav-btn { font-size: 36px; line-height: 42px; border-radius: 13px; }
+.nav-btn:active { background: rgba(111,29,27,.07); }
+.month-title { font-size: 19px; padding: 9px; }
+.weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.weekdays { color: var(--muted); font-size: 11px; font-weight: 700; text-align: center; padding-bottom: 6px; }
+.day {
+  position: relative; min-height: 55px; border: 1px solid transparent; background: transparent; border-radius: 13px; padding: 8px 4px 5px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; color: var(--ink);
+}
+.day.outside { opacity: .28; }
+.day .num { font-size: 15px; font-weight: 650; }
+.day .marks { display: flex; gap: 3px; height: 8px; align-items: center; margin-top: 6px; }
+.day .mark { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-2); }
+.day .mark.fast { background: var(--fast); }
+.day .mark.pascha { background: var(--pascha); width: 7px; height: 7px; }
+.day.today { border-color: var(--gold); }
+.day.selected { background: var(--accent); color: #fff; }
+.day.selected .mark { outline: 1px solid rgba(255,255,255,.7); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; color: var(--muted); font-size: 11px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-2); display: inline-block; }
+.dot.fast { background: var(--fast); }.dot.pascha { background: var(--pascha); }
+
+.details-card { padding: 18px; }
+.details-date { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+.details-card h2 { margin: 0 0 11px; font-family: Georgia, "Times New Roman", serif; font-size: 24px; }
+.event-list { display: grid; gap: 9px; margin: 12px 0 16px; }
+.event { padding: 11px 12px; border-radius: 13px; background: #f8f2eb; border: 1px solid #eee1d5; }
+.event strong { display: block; font-size: 15px; }
+.event small { display: block; color: var(--muted); margin-top: 3px; }
+.fast-note { padding: 10px 12px; border-radius: 13px; background: #f2eef7; color: #4d3f65; margin-bottom: 14px; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.action-link {
+  display: flex; justify-content: center; align-items: center; min-height: 48px; text-align: center; text-decoration: none; border-radius: 14px; font-weight: 700; padding: 8px;
+  background: var(--accent); color: #fff;
+}
+.action-link.secondary { background: #f3e9df; color: var(--accent); border: 1px solid #e5d4c6; }
+.source-card { padding: 16px 18px; }
+.source-card h2 { margin: 0 0 7px; font-size: 16px; }
+.source-card p { margin: 0; color: var(--muted); line-height: 1.45; font-size: 13px; }
+.source-card .small { margin-top: 8px; font-size: 11px; }
+.empty { color: var(--muted); font-size: 14px; }
+
+@media (max-width: 430px) {
+  .app-shell { padding-left: 10px; padding-right: 10px; }
+  .day { min-height: 51px; border-radius: 11px; }
+  .today-date { font-size: 27px; }
+  .actions { grid-template-columns: 1fr; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171311; --card: #211b18; --ink: #f4ece5; --muted: #b9aaa2; --border: #3a2d28;
+    --shadow: 0 8px 28px rgba(0,0,0,.22);
+  }
+  body { background: radial-gradient(circle at top right, rgba(181,139,58,.10), transparent 36%), var(--bg); }
+  .topbar { background: rgba(23,19,17,.88); }
+  .event { background: #2b211d; border-color: #3d2d26; }
+  .fast-note { background: #2d2734; color: #d7c8e8; }
+  .action-link.secondary { background: #2b211d; border-color: #44332b; color: #e8c4bd; }
+}
