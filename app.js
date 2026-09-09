@@ -22,7 +22,7 @@
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
   function escapeHtml(s) { return String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function cacheKey(d) { return `oca-ru-${OCA.iso(d)}`; }
-  function rocCacheKey(d) { return `roc-menologion-v6-${OCA.iso(d)}`; }
+  function rocCacheKey(d) { return `roc-menologion-v7-${OCA.iso(d)}`; }
   function autoTranslateOn() { return localStorage.getItem('oca-auto-translate') !== '0'; }
   function translatedPageUrl(url) { return `https://translate.google.com/translate?sl=en&tl=ru&u=${encodeURIComponent(url)}`; }
 
@@ -173,7 +173,7 @@
     const civil = OCAReader.julianNominalToGregorian(selected);
     rocPanel.innerHTML = `
       <div class="reader-head">
-        <div><div class="reader-kicker">Русский месяцеслов · Азбука веры</div><h2>Память святых РПЦ</h2></div>
+        <div><div class="reader-kicker">Русский месяцеслов · Православие.Ru</div><h2>Память святых РПЦ</h2></div>
         <button class="mini-btn" id="rocLoadBtn" type="button">Загрузить</button>
       </div>
       <div class="calendar-match">
@@ -190,7 +190,7 @@
     const items = data.entries || [];
     rocPanel.innerHTML = `
       <div class="reader-head">
-        <div><div class="reader-kicker">Русский месяцеслов · Азбука веры</div><h2>Память святых РПЦ</h2></div>
+        <div><div class="reader-kicker">Русский месяцеслов · Православие.Ru</div><h2>Память святых РПЦ</h2></div>
         <span class="status-pill">${fromCache ? 'сохранено' : 'обновлено'}</span>
       </div>
       <div class="calendar-match">
@@ -205,7 +205,7 @@
       </div>
       <div class="reader-footer">
         <button id="refreshRoc" class="mini-btn" type="button">Обновить</button>
-        <a href="${escapeHtml(data.sourceUrl || OCAReader.azbykaDayUrl(selected))}" target="_blank" rel="noopener">Азбука веры ↗</a>
+        <a href="${escapeHtml(data.sourceUrl || OCAReader.pravoslavieDayUrl(selected))}" target="_blank" rel="noopener">Православие.Ru ↗</a>
       </div>`;
     document.getElementById('refreshRoc').addEventListener('click', () => loadRocReader(true, true));
   }
@@ -223,16 +223,16 @@
     const civil = OCAReader.julianNominalToGregorian(d);
     rocPanel.innerHTML = `<div class="reader-loading"><span class="spinner"></span><div><strong>Загружаю русский месяцеслов…</strong><small>${escapeHtml(fmtShort.format(d))} OCA → ${escapeHtml(fmtShort.format(civil))} по календарю РПЦ.</small></div></div>`;
     try {
-      const data = await OCAReader.fetchAzbykaMenologion(d);
+      const data = await OCAReader.fetchPravoslavieMenologion(d);
       if (token !== rocLoadToken) return;
       try { localStorage.setItem(key, JSON.stringify({ data, savedAt: Date.now() })); } catch (_) {}
       renderRocData(data, false);
     } catch (err) {
       if (token !== rocLoadToken) return;
       rocPanel.innerHTML = `
-        <div class="reader-head"><div><div class="reader-kicker">Русский месяцеслов · Азбука веры</div><h2>Память святых РПЦ</h2></div></div>
-        <div class="reader-error">Сейчас не удалось автоматически получить список с «Азбуки веры». Дата для русского календаря: <strong>${escapeHtml(fmtShort.format(civil))}</strong>.</div>
-        <div class="actions"><button id="retryRoc" class="action-link" type="button">Повторить</button><a class="action-link secondary" href="${escapeHtml(OCAReader.azbykaDayUrl(d))}" target="_blank" rel="noopener">Открыть «Азбуку веры» ↗</a></div>`;
+        <div class="reader-head"><div><div class="reader-kicker">Русский месяцеслов · Православие.Ru</div><h2>Память святых РПЦ</h2></div></div>
+        <div class="reader-error">Сейчас не удалось автоматически получить список с Православие.Ru. Дата для русского календаря: <strong>${escapeHtml(fmtShort.format(civil))}</strong>.</div>
+        <div class="actions"><button id="retryRoc" class="action-link" type="button">Повторить</button><a class="action-link secondary" href="${escapeHtml(OCAReader.pravoslavieDayUrl(d))}" target="_blank" rel="noopener">Открыть Православие.Ru ↗</a></div>`;
       document.getElementById('retryRoc').addEventListener('click', () => loadRocReader(true, true));
     }
   }
@@ -261,6 +261,6 @@
   renderToday(); renderCalendar(); renderDetails();
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('./sw-v6.js').catch(() => {}));
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw-v7.js').catch(() => {}));
   }
 })();
