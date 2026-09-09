@@ -22,7 +22,7 @@
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
   function escapeHtml(s) { return String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function cacheKey(d) { return `oca-ru-${OCA.iso(d)}`; }
-  function rocCacheKey(d) { return `roc-menologion-${OCA.iso(d)}`; }
+  function rocCacheKey(d) { return `roc-menologion-v6-${OCA.iso(d)}`; }
   function autoTranslateOn() { return localStorage.getItem('oca-auto-translate') !== '0'; }
   function translatedPageUrl(url) { return `https://translate.google.com/translate?sl=en&tl=ru&u=${encodeURIComponent(url)}`; }
 
@@ -261,6 +261,6 @@
   renderToday(); renderCalendar(); renderDetails();
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('./sw-v5.js').catch(() => {}));
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw-v6.js').catch(() => {}));
   }
 })();

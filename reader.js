@@ -216,49 +216,134 @@
       .trim();
   }
 
+  function htmlFragmentToLines(html) {
+    try {
+      const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+      const selectors = ['li','h2','h3','h4','.presentation','.saint','.holiday','.event','p'];
+      const nodes = [...doc.querySelectorAll(selectors.join(','))];
+      return nodes.map(n => cleanAzbykaLine(n.textContent)).filter(Boolean);
+    } catch (_) {
+      return String(html || '').replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]+>/g, ' ').split('\n').map(cleanAzbykaLine).filter(Boolean);
+    }
+  }
+
+  function isAzbykaCommemorationLine(s) {
+    const x = cleanAzbykaLine(s);
+    if (!x || x.length < 4 || x.length > 650) return false;
+    if (!/[А-Яа-яЁё]/.test(x)) return false;
+    if (/^(?:Главная|Календарь|Библия|Книги|Статьи|Поиск|Пожертвовать|Войти|Регистрация|Аудиокалендарь|Православное радио|Цитата дня|Фото дня|Этот день в истории|Богослужения|Чтения Священного Писания|Богослужебные чтения дня|Библия за год|Цитата дня из Библии)$/i.test(x)) return false;
+    if (/^(?:Сегодня|Завтра|Вчера)\b/i.test(x)) return false;
+    if (/^https?:\/\//i.test(x)) return false;
+    // Most Azbyka calendar entries contain a rank/commemoration term. Keep feast/icon lines too.
+    const church = /(?:^|\s)(?:свт\.|св\.|прп\.|прпп\.|мч\.|мчч\.|мц\.|мцц\.|сщмч\.|сщмчч\.|прмч\.|прмц\.|вмч\.|вмц\.|ап\.|апп\.|прор\.|прав\.|блж\.|блгв\.|равноап\.|исповед|страстотерп|чудотвор|икон[аы]|Собор|Рождество|Успение|Воздвижение|Богоявление|Сретение|Преображение|Покров|Обретение|Перенесение|Попразднство|Предпразднство|Отдание|Положение|Обновление)/i;
+    return church.test(x);
+  }
+
   function parseAzbykaMarkdown(text) {
     const raw = String(text || '').replace(/\r/g, '');
     const stopMatch = raw.search(/\n##\s+(?:Чтения Священного Писания|Богослужения|Тропари|Притча дня)/i);
-    const top = stopMatch >= 0 ? raw.slice(0, stopMatch) : raw.slice(0, 12000);
+    const top = stopMatch >= 0 ? raw.slice(0, stopMatch) : raw.slice(0, 16000);
     const lines = top.split('\n');
     const entries = [];
     for (const line of lines) {
       if (!/^\s*[-*•]\s+/.test(line)) continue;
       const item = cleanAzbykaLine(line);
-      if (!item || /^(Богослужебные чтения дня|Цитата дня из Библии|Библия за год)$/i.test(item)) continue;
-      entries.push(item);
+      if (isAzbykaCommemorationLine(item)) entries.push(item);
     }
-    return [...new Set(entries)].slice(0, 80);
+    return [...new Set(entries)].slice(0, 100);
   }
 
   function parseAzbykaHtml(html) {
-    try {
-      const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
-      const h1 = doc.querySelector('h1');
-      if (!h1) return [];
-      const all = [...doc.querySelectorAll('li')].map(li => cleanAzbykaLine(li.textContent)).filter(Boolean);
-      // Keep concise commemoration-like items; navigation links are usually very short or generic.
-      return [...new Set(all.filter(x => x.length > 5 && x.length < 500 && !/^(Главная|Календарь|Библия|Книги|Статьи|Поиск|Пожертвовать|Войти|Регистрация)$/i.test(x)))].slice(0, 80);
-    } catch (_) { return []; }
+    const all = htmlFragmentToLines(html);
+    return [...new Set(all.filter(isAzbykaCommemorationLine))].slice(0, 100);
+  }
+
+  // Official Azbyka widget endpoint documented for embedding saints of the day
+  // on third-party sites. The exact JSON shape has changed over time, so this
+  // parser accepts both HTML-bearing and structured variants.
+  function parseAzbykaWidgetJson(payload) {
+    const candidates = [];
+    const seen = new Set();
+
+    function addString(value, path='') {
+      if (typeof value !== 'string') return;
+      const raw = value.trim();
+      if (!raw) return;
+      if (/<[a-z][\s\S]*>/i.test(raw)) {
+        for (const line of htmlFragmentToLines(raw)) candidates.push(line);
+      } else {
+        const cleaned = cleanAzbykaLine(raw);
+        if (cleaned) candidates.push(cleaned);
+      }
+    }
+
+    function walk(value, path='', depth=0) {
+      if (depth > 10 || value == null) return;
+      if (typeof value === 'string') { addString(value, path); return; }
+      if (Array.isArray(value)) { value.forEach((v,i)=>walk(v, `${path}[${i}]`, depth+1)); return; }
+      if (typeof value !== 'object') return;
+      for (const [k,v] of Object.entries(value)) {
+        const p = path ? `${path}.${k}` : k;
+        if (typeof v === 'string' && /(?:html|title|name|text|label|description|presentation|saint|holiday|event|content)/i.test(k)) addString(v, p);
+        else walk(v, p, depth+1);
+      }
+    }
+
+    walk(payload);
+    const out = [];
+    for (const item of candidates) {
+      const x = cleanAzbykaLine(item);
+      if (!isAzbykaCommemorationLine(x)) continue;
+      if (!seen.has(x)) { seen.add(x); out.push(x); }
+    }
+    return out.slice(0, 100);
+  }
+
+  async function fetchJsonText(url, ms=12000) {
+    const r = await fetchWithTimeout(url, {headers:{'Accept':'application/json,text/plain,*/*'}}, ms);
+    if (!r.ok) throw new Error(String(r.status));
+    const txt = await r.text();
+    try { return JSON.parse(txt); }
+    catch (_) { throw new Error('invalid json'); }
   }
 
   async function fetchAzbykaMenologion(ocaDate) {
     const targetRu = azbykaDayUrl(ocaDate);
     const targetOrg = targetRu.replace('azbyka.ru', 'azbyka.org');
+    const civil = julianNominalToGregorian(ocaDate);
+    const iso = `${civil.getFullYear()}-${pad(civil.getMonth()+1)}-${pad(civil.getDate())}`;
+    const errors=[];
+
+    // 1) Official public widget endpoint. Azbyka explicitly documents this for
+    // use on third-party websites and accepts a date=Y-m-d parameter.
+    const apiAttempts = [
+      {name:'Azbyka widget API', url:`https://azbyka.ru/days/widgets/presentations.json?date=${iso}&image=0&prevNextLinks=0`},
+      // Legacy endpoint is still used by older external integrations.
+      {name:'Azbyka legacy widget API', url:`https://azbyka.ru/days/api/presentations.json?date=${iso}&image=0`}
+    ];
+    for (const a of apiAttempts) {
+      try {
+        const data = await fetchJsonText(a.url, 14000);
+        const entries = parseAzbykaWidgetJson(data);
+        if (entries.length) return { entries, sourceUrl:targetRu, via:a.name, civilDate:civil };
+        throw new Error('empty');
+      } catch (e) { errors.push(`${a.name}: ${e && e.message ? e.message : 'ошибка'}`); }
+    }
+
+    // 2) Reader/proxy fallbacks for browsers or networks where the direct API is blocked.
     const attempts = [
       {name:'Jina/Azbyka.ru', url:`https://r.jina.ai/${targetRu}`, kind:'text', source:targetRu},
       {name:'Jina/Azbyka.org', url:`https://r.jina.ai/${targetOrg}`, kind:'text', source:targetOrg},
       {name:'AllOrigins', url:`https://api.allorigins.win/raw?url=${encodeURIComponent(targetRu)}`, kind:'html', source:targetRu},
       {name:'CodeTabs', url:`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetRu)}`, kind:'html', source:targetRu}
     ];
-    const errors=[];
     for (const a of attempts) {
       try {
         const r = await fetchWithTimeout(a.url, {headers:{'Accept': a.kind==='text'?'text/plain':'text/html,*/*'}}, 14000);
         if (!r.ok) throw new Error(String(r.status));
         const body = await r.text();
         const entries = a.kind === 'text' ? parseAzbykaMarkdown(body) : parseAzbykaHtml(body);
-        if (entries.length) return { entries, sourceUrl:a.source, via:a.name, civilDate:julianNominalToGregorian(ocaDate) };
+        if (entries.length) return { entries, sourceUrl:a.source, via:a.name, civilDate:civil };
         throw new Error('empty');
       } catch(e) { errors.push(`${a.name}: ${e && e.message ? e.message : 'ошибка'}`); }
     }
